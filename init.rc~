@@ -888,8 +888,3 @@ service filebackup /system/bin/filebackup
     socket filebackup stream 0600 radio system
 #/* DTS2011102903110 weizhonghui 20111104 end >*/
 
-
-service postinit /sbin/ext/post-init.sh
-    class core
-    user root
-    oneshot

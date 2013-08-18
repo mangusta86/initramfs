@@ -1,0 +1,61 @@
+#!/sbin/busybox sh
+
+BB=/sbin/busybox
+
+$BB mount -t rootfs -o remount,rw rootfs
+
+ln -s /sbin/busybox /sbin/sh
+
+$BB chmod -R 777 /proc/
+
+# protecting fuelgauge reset trigger.
+$BB chmod 000 /sys/devices/platform/i2c-gpio.9/i2c-9/9-0036/power_supply/fuelgauge/fg_reset_soc
+
+$BB rm -rf /emmc
+$BB mkdir /emmc
+$BB chmod 777 /emmc
+
+$BB rm -rf /sdcard
+$BB mkdir /sdcard
+$BB chmod 777 /sdcard
+
+$BB rm -rf /etc
+$BB mkdir /etc
+$BB cat /res/etc/recovery.fstab > /etc/recovery.fstab
+
+#start adbd
+stop tvout
+
+echo "0" > /sys/class/mdnie/mdnie/scenario
+echo "1" > /sys/class/mdnie/mdnie/mode
+
+$BB rm -rf /cache
+$BB mkdir /cache
+$BB chmod 777 /cache
+$BB mount -t ext4 /dev/block/mmcblk0p7 /cache
+$BB mkdir /cache/recovery
+$BB chmod 770 /cache/recovery
+$BB chown system.cache /cache/recovery
+
+cd /
+$BB mkdir -p /mnt/.secondrom
+$BB mount -t vfat /dev/block/mmcblk0p11 /mnt/.secondrom
+$BB mkdir /mnt/.secondrom/.secondrom
+$BB rm -rf /secondrom_cache
+$BB mkdir /secondrom_cache
+$BB mount -t ext4 /mnt/.secondrom/.secondrom/cache.img /secondrom_cache
+$BB mkdir /secondrom_data
+$BB mkdir /secondrom_system
+
+#echo "7" > /sys/vibrator/vibrator_level
+echo "75" > /sys/vibrator/pwm_val
+echo 102 > /sys/devices/virtual/sec/sec_key/set_homekey
+
+if [ -f /cache/recovery/command ]; then
+	$BB cp /res/keys-samsung /res/keys
+	recovery-samsung
+else
+	echo 1 > /sbin/recovery-is-running
+	recovery
+fi;
+
