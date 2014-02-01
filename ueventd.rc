@@ -5,13 +5,29 @@
 /dev/tty                  0666   root       root
 /dev/random               0666   root       root
 /dev/urandom              0666   root       root
-/dev/frandom              0666   root       root
 /dev/ashmem               0666   root       root
 /dev/binder               0666   root       root
 
-# logger should be world writable (for logging) but not readable
+# Anyone can read the logs, but if they're not in the "logs"
+# group, then they'll only see log entries for their UID.
+/dev/ttyUSB1              0666   root       root
+/dev/ttyUSB0              0666   root       root
+/dev/ttyACM0              0666   root       root
+/dev/ttyACM1              0666   root       root
+/dev/ttyACM2              0666   root       root
+/dev/ttyACM3              0666   root       root
+/dev/mux1                0666   root       root
+/dev/mux2                0666   root       root
+/dev/mux3                0666   root       root
+/dev/mux4                0666   root       root
+/dev/mux5                0666   root       root
+/dev/mux6                0666   root       root
+/dev/mux7                0666   root       root
+/dev/mux8                0666   root       root
+# for CTS test:events can be read, others can't be read
 /dev/log/*                0662   root       log
-
+/dev/log/events           0666   root       log
+/dev/smart/*              0662   system       system
 # the msm hw3d client device node is world writable/readable.
 /dev/msm_hw3dc            0666   root       root
 
@@ -27,8 +43,8 @@
 /dev/android_adb          0660   adb        adb
 /dev/android_adb_enable   0660   adb        adb
 /dev/ttyMSM0              0600   bluetooth  bluetooth
-/dev/uhid                 0660   system     bluetooth
-/dev/uinput               0660   system     bluetooth
+/dev/uhid                 0660   system     net_bt_stack
+/dev/uinput               0660   system     net_bt_stack
 /dev/alarm                0664   system     radio
 /dev/tty0                 0660   root       system
 /dev/graphics/*           0660   root       graphics
@@ -43,7 +59,7 @@
 /dev/adsp/*               0660   system     audio
 /dev/snd/*                0660   system     audio
 /dev/mt9t013              0660   system     system
-/dev/msm_camera/*         0660   system     camera
+/dev/msm_camera/*         0660   system     system
 /dev/akm8976_daemon       0640   compass    system
 /dev/akm8976_aot          0640   compass    system
 /dev/akm8973_daemon       0640   compass    system
@@ -75,7 +91,6 @@
 /dev/bus/usb/*            0660   root       usb
 /dev/mtp_usb              0660   root       mtp
 /dev/usb_accessory        0660   root       usb
-/dev/usb/lp*              0660   system     usb
 /dev/tun                  0660   system     vpn
 
 # CDMA radio interface MUX
