@@ -11,8 +11,7 @@
 		MEM_USED_CALC=$(($MEM_USED*100/$MEM_ALL));
 
 		# do clean cache only if cache uses 50% of free memory.
-		if [ "$MEM_USED_CALC" \> 50 ]; then
-
+		if [ "$MEM_USED_CALC" -gt "50" ]; then
 			# wait till CPU is idle.
 			while [ ! `cat /proc/loadavg | cut -c1-4` \< "3.50" ]; do
 				echo "Waiting For CPU to cool down";
@@ -20,10 +19,7 @@
 			done;
 
 			sync;
-			sysctl -w vm.drop_caches=3
-			sync;
-			sysctl -w vm.drop_caches=1
-			sync;
+			sysctl -w vm.drop_caches=3;
 			date +%H:%M-%D-%Z > /data/crontab/cron-clear-ram-cache;
 			echo "Cache above 50%! Cleaned RAM Cache" >> /data/crontab/cron-clear-ram-cache;
 		fi;

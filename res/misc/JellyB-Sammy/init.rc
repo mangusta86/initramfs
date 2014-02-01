@@ -6,8 +6,8 @@
 
 # THIS INIT.RC is FOR SAMMY JB ROMS!
 
-import /init.smdk4210.rc
 import /init.usb.rc
+import /init.smdk4210.rc
 import /init.trace.rc
 import /init.smdk4210.dm_kernel.rc
 
@@ -36,6 +36,9 @@ loglevel 3
     export ASEC_MOUNTPOINT /mnt/asec
     export LOOP_MOUNTPOINT /mnt/obb
     export BOOTCLASSPATH /system/framework/core.jar:/system/framework/core-junit.jar:/system/framework/bouncycastle.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/framework2.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/apache-xml.jar:/system/framework/sec_edm.jar:/system/framework/seccamera.jar
+    export TERMINFO /system/etc/terminfo
+    export TERM linux
+
 #WTL_EDM
 # Backward compatibility
     symlink /system/etc /etc
@@ -52,7 +55,7 @@ loglevel 3
 
     mkdir /system
     mkdir /data 0771 system system
-    mkdir /cache 0770 system cache
+    mkdir /cache 0771 system cache
     mkdir /config 0500 root root
     mkdir /preload 0771 system system
 
@@ -74,15 +77,18 @@ loglevel 3
     mkdir /mnt/obb 0700 root system
     mount tmpfs tmpfs /mnt/obb mode=0755,gid=1000
 
+    write /proc/sys/vm/legacy_va_layout 1
+    write /proc/sys/kernel/randomize_va_space 2
     write /proc/sys/kernel/panic_on_oops 0
     write /proc/sys/kernel/hung_task_timeout_secs 0
     write /proc/cpu/alignment 4
     write /proc/sys/kernel/sched_latency_ns 10000000
     write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
-    write /proc/sys/kernel/sched_compat_yield 1
+#   write /proc/sys/kernel/sched_compat_yield 1
     write /proc/sys/kernel/sched_child_runs_first 0
     write /proc/sys/kernel/kptr_restrict 0
     write /proc/sys/kernel/dmesg_restrict 0
+    write /proc/sys/net/ipv4/ping_group_range "0 2147483647"
     write /proc/sys/kernel/sched_rt_runtime_us 950000
     write /proc/sys/kernel/sched_rt_period_us 1000000
 
@@ -111,6 +117,12 @@ loglevel 3
     write /dev/cpuctl/apps/bg_non_interactive/cpu.rt_runtime_us 700000
     write /dev/cpuctl/apps/bg_non_interactive/cpu.rt_period_us 1000000
 
+# qtaguid will limit access to specific data based on group memberships.
+#   net_bw_acct grants impersonation of socket owners.
+#   net_bw_stats grants access to other apps' detailed tagged-socket stats.
+    chown root net_bw_acct /proc/net/xt_qtaguid/ctrl
+    chown root net_bw_stats /proc/net/xt_qtaguid/stats
+
 # Allow everybody to read the xt_qtaguid resource tracking misc dev.
 # This is needed by any process that uses socket tagging.
     chmod 0644 /dev/xt_qtaguid
@@ -129,7 +141,7 @@ on post-fs
 
 # We chown/chmod /cache again so because mount is run as root + defaults
     chown system cache /cache
-    chmod 0770 /cache
+    chmod 0771 /cache
 
 # This may have been created by the recovery system with odd permissions
     chown system cache /cache/recovery
@@ -201,13 +213,13 @@ on post-fs-data
     mkdir /data/app-private 0771 system system
     mkdir /data/app-asec 0700 root root
     mkdir /data/app 0771 system system
-    mkdir /data/property 0770 root radio
+    mkdir /data/property 0700 root root
     mkdir /data/ssh 0750 root shell
     mkdir /data/ssh/empty 0700 root root
 
 # set correct permissions on /data/property
-    chown root radio /data/property
-    chmod 0770 /data/property
+    chown root root /data/property
+    chmod 0700 /data/property
 
 # SA, System SW, SAMSUNG create log directory
     mkdir /data/log 0775 system log
@@ -291,14 +303,14 @@ on boot
 # parameters to match how it is managing things.
     write /proc/sys/vm/overcommit_memory 1
     write /proc/sys/vm/min_free_order_shift 4
-#   chown root system /sys/module/lowmemorykiller/parameters/adj
-#   chmod 0664 /sys/module/lowmemorykiller/parameters/adj
+    chown root system /sys/module/lowmemorykiller/parameters/adj
+    chmod 0664 /sys/module/lowmemorykiller/parameters/adj
     chown root system /sys/module/lowmemorykiller/parameters/minfree
     chmod 0664 /sys/module/lowmemorykiller/parameters/minfree
 
 # Tweak background writeout
     write /proc/sys/vm/dirty_expire_centisecs 200
-    write /proc/sys/vm/dirty_background_ratio  10
+    write /proc/sys/vm/dirty_background_ratio  15
 
 # Permissions for System Server and daemons.
     chown radio system /sys/android_power/state
@@ -338,12 +350,6 @@ on boot
     chown system system /sys/class/leds/red/device/grpfreq
     chown system system /sys/class/leds/red/device/grppwm
     chown system system /sys/class/leds/red/device/blink
-    chown system system /sys/class/leds/red/brightness
-    chown system system /sys/class/leds/green/brightness
-    chown system system /sys/class/leds/blue/brightness
-    chown system system /sys/class/leds/red/device/grpfreq
-    chown system system /sys/class/leds/red/device/grppwm
-    chown system system /sys/class/leds/red/device/blink
     chown system system /sys/class/timed_output/vibrator/enable
     chown system system /sys/module/sco/parameters/disable_esco
     chown system system /sys/kernel/ipv4/tcp_wmem_min
@@ -354,6 +360,11 @@ on boot
     chown system system /sys/kernel/ipv4/tcp_rmem_max
     chown system system /sys/class/power_supply/battery/temp
     chown root radio /proc/cmdline
+
+# Assign TCP buffer thresholds to be ceiling value of technology maximums
+# Increased technology maximums should be reflected here.
+    write /proc/sys/net/core/rmem_max  2097152
+    write /proc/sys/net/core/wmem_max  2097152
 
 # Permissions for gpio_keys
     chown radio system /sys/class/sec/sec_key/wakeup_keys
@@ -375,18 +386,20 @@ on boot
     write /sys/class/sec/sec_epen/epen_firm_update R
 
 # Permissions for Touchkey
-    chown system radio /sys/class/sec/sec_touchkey/enable_disable
-    chown system radio /sys/class/sec/sec_touchkey/recommended_version
-    chown system radio /sys/class/sec/sec_touchkey/touch_sensitivity
-    chown system radio /sys/class/sec/sec_touchkey/brightness
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_brightness
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_back
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_menu
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_firm_version_panel
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_firm_version_phone
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_firm_update_status
-    chown system radio /sys/class/sec/sec_touchkey/touchkey_firm_update
-    chown system radio /sys/class/sec/sec_touchkey/updated_version
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/force_disable
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/enable_disable
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/recommended_version
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touch_sensitivity
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/brightness
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_brightness
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_back
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_menu
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_firm_version_panel
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_firm_version_phone
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_firm_update_status
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/touchkey_firm_update
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/updated_version
+    chown system radio /sys/devices/virtual/sec/sec_touchkey/led_timeout
 
     chown system radio /sys/class/sec/tsp_noise_test/set_firm_version
     chown system radio /sys/class/sec/tsp_noise_test/set_threshould
@@ -678,4 +691,3 @@ service postinit /sbin/ext/post-init.sh
     class core
     user root
     oneshot
-

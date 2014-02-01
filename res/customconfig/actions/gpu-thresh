@@ -10,7 +10,7 @@ else
 	eval $evalcmd;
 	if [ -f /sys/class/misc/mali_control/threshold_control ]; then
 		echo "${GPUTHRESHOLD1UP}% ${GPUTHRESHOLD2DOWN}% ${GPUTHRESHOLD2UP}% ${GPUTHRESHOLD3DOWN}% ${GPUTHRESHOLD3UP}% ${GPUTHRESHOLD4DOWN}% ${GPUTHRESHOLD4UP}% ${GPUTHRESHOLD5DOWN}%" > /sys/class/misc/mali_control/threshold_control;
-	else
+	elif [ -f /sys/module/mali/parameters/step0_up ]; then
 		echo $GPUTHRESHOLD1UP > /sys/module/mali/parameters/step0_up;
 		echo $GPUTHRESHOLD2DOWN > /sys/module/mali/parameters/step1_down;
 		echo $GPUTHRESHOLD2UP > /sys/module/mali/parameters/step1_up;
@@ -19,5 +19,7 @@ else
 		echo $GPUTHRESHOLD4DOWN > /sys/module/mali/parameters/step3_down;
 		echo $GPUTHRESHOLD4UP > /sys/module/mali/parameters/step3_up;
 		echo $GPUTHRESHOLD5DOWN > /sys/module/mali/parameters/step4_down;
+	else
+		echo "${GPUTHRESHOLD1UP}% ${GPUTHRESHOLD2DOWN}% ${GPUTHRESHOLD2UP}% ${GPUTHRESHOLD3DOWN}% ${GPUTHRESHOLD3UP}% ${GPUTHRESHOLD4DOWN}% ${GPUTHRESHOLD4UP}% ${GPUTHRESHOLD5DOWN}%" > /dev/null;
 	fi;
 fi;

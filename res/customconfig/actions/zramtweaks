@@ -15,6 +15,16 @@ else
 	echo "$zramtweaks";
 fi;
 
+ZRAM_TWEAKS()
+{
+	local ZRM=`ls -d /sys/block/zram*`;
+	for i in $ZRM; do
+		echo "0" > $i/queue/rotational;
+		echo "0" > $i/queue/iostats;
+		echo "1" > $i/queue/rq_affinity;
+	done;
+}
+
 case "${zramtweaks}" in
 	1)
 		if [ `cat /proc/swaps | grep 150000 |  wc -l` != "1" ]; then
@@ -28,6 +38,7 @@ case "${zramtweaks}" in
 				mkswap /dev/block/zram0 >/dev/null;
 				# activating ZRAM swap
 				swapon /dev/block/zram0 >/dev/null 2>&1;
+				ZRAM_TWEAKS;
 			fi;
 		fi;
 	;;
@@ -43,6 +54,7 @@ case "${zramtweaks}" in
 				mkswap /dev/block/zram0 >/dev/null;
 				# activating ZRAM swap
 				swapon /dev/block/zram0 >/dev/null 2>&1;
+				ZRAM_TWEAKS;
 			fi;
 		fi;
 	;;
@@ -58,6 +70,7 @@ case "${zramtweaks}" in
 				mkswap /dev/block/zram0 >/dev/null;
 				# activating ZRAM swap
 				swapon /dev/block/zram0 >/dev/null 2>&1;
+				ZRAM_TWEAKS;
 			fi;
 		fi;
 	;;
@@ -71,4 +84,3 @@ case "${zramtweaks}" in
 		zramtweaks=4;
 	;;
 esac;
-

@@ -13,9 +13,6 @@ on boot
     setprop ro.build.product generic
     setprop ro.product.device generic
 
-#<DTS2012090406278       z00183953      2012/09/05    add for  updtae bcm-btla from ics to jellybean  begin
-    mkdir /data/misc/dhcp 0770 dhcp dhcp
-#DTS2012090406278       z00183953      2012/09/05    add for  updtae bcm-btla from ics to jellybean   end>
 # fake some battery state
     setprop status.battery.state Slow
     setprop status.battery.level 5
@@ -79,44 +76,3 @@ service qemud /system/bin/qemud
 
 service goldfish-logcat /system/bin/logcat -Q
     oneshot
-#<DTS2012090406278       z00183953      2012/09/05    add for  updtae bcm-btla from ics to jellybean  begin
-#service hciattach /system/bin/brcm_patchram_plus --enable_hci --enable_lpm \
-#    --baudrate 3000000 --patchram /vendor/firmware/bcm4329.hcd /dev/s3c2410_serial0
-#    class main
-#    user bluetooth
-##    group bluetooth net_bt_admin
-#    disabled
-#    oneshot
-
-# Make sure we startup btld before bluetoothd
-# Set target address to emulator host loopback IF
-# Limit baudrate to 460800 to ensure reliable uart operation 
-service btld /system/bin/logwrapper /system/bin/btld -hwtun 10.0.2.2 #-hb 460800
-    user root
-    group bluetooth net_bt_admin
-    disabled
-    oneshot
-
-# start btld if soft_onoff is enabled
-on property:service.brcm.bt.soft_onoff=1
-    start btld
-
-# stop btld if soft_onoff is disabled
-#on property:service.brcm.bt.soft_onoff=0
-#    stop btld
-
-#STOPSHIP: Remove logwrapper and -d option before production
-service bluetoothd /system/bin/logwrapper /system/bin/bluetoothd -d -n
-    class main
-    socket bluetooth stream 660 bluetooth bluetooth
-    socket dbus_bluetooth stream 660 bluetooth bluetooth
-# init.rc does not yet support applying capabilities, so run as root and
-# let bluetoothd drop uid to bluetooth with the right linux capabilities
-    group bluetooth net_bt_admin misc
-    disabled
-
-service dhcpcd /system/bin/dhcpcd -B
-group dhcp wifi system bluetooth
-disabled
-oneshot
-#DTS2012090406278       z00183953      2012/09/05    add for  updtae bcm-btla from ics to jellybean   end>

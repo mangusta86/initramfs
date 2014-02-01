@@ -449,7 +449,7 @@ date_diff()
 fp_end()
 {
    if $TEST $SYSREMOUNT -eq 1; then
-      $MOUNT -o remount,ro $DEVICE /system > /dev/null 2>&1
+      $MOUNT -o remount,rw $DEVICE /system > /dev/null 2>&1
    fi
    
    if $TEST $SYSSDMOUNT -eq 1; then

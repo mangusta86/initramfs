@@ -68,6 +68,8 @@ on post-fs-data
     chmod 0660 /data/.psm.info
 
 on boot
+    mount debugfs /sys/kernel/debug /sys/kernel/debug
+
 # SISO-ANDR_PERF :: START Changing scheduler to noop during boot
 #    write /sys/block/mmcblk0/queue/scheduler noop
 # SISO-ANDR_PERF :: END
@@ -129,8 +131,6 @@ on boot
     chown system radio /sys/class/sensors/magnetic_sensor/raw_data
     chown system radio /sys/class/sensors/magnetic_sensor/vendor
     chown system radio /sys/class/sensors/magnetic_sensor/name
-    chmod 0660 /sys/vibrator/pwm_val
-    chown system system /sys/vibrator/pwm_val
 
 # permissions for NFC
     setprop ro.nfc.port "I2C"

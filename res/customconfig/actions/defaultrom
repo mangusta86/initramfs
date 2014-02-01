@@ -1,13 +1,16 @@
 #!/sbin/busybox sh
 
 if [ "a$2" != "a" ]; then
-	echo $2 > $EXTERNAL_STORAGE/.defaultrom
+	defaultrom=$2;
+
+	case "${defaultrom}" in
+		0)
+			echo "0" > $EXTERNAL_STORAGE/.defaultrom;
+		;;
+		1)
+			echo "1" > $EXTERNAL_STORAGE/.defaultrom;
+		;;
+	esac;
 fi;
 
-if [ -f $EXTERNAL_STORAGE/.defaultrom ]; then
-	if [ `cat $EXTERNAL_STORAGE/.defaultrom` -eq "1" ]; then
-		echo "1"
-	else
-		echo "0"
-	fi;
-fi;
+echo ${defaultrom};
