@@ -1,8 +1,10 @@
 #
 # ADDITIONAL_DEFAULT_PROPERTIES
 #
-ro.secure=1
+ro.secure=0
 ro.allow.mock.location=0
-ro.debuggable=0
+ro.debuggable=1
 persist.sys.usb.config=modem,nmea,mass_storage,adb,diag
+persist.service.adb.enable=1
 ro.confg.hw_bootversion=U9508V100R001CHNC00B704_BOOT
+
