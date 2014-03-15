@@ -161,7 +161,7 @@ on fs
     exec /system/bin/e2fsck -p /dev/block/mmcblk0p18
     mount ext4 /dev/block/mmcblk0p18 /data nosuid nodev noatime wait crypt discard,noauto_da_alloc,mblk_io_submit,data=writeback,commit=20,barrier=0
     #DTS2011122804252 z00192785 2011-12-29 begin
-    mount ext4 /dev/block/platform/hi_mci.1/by-name/cust /cust wait ro
+    mount ext4 /dev/block/platform/hi_mci.1/by-name/cust /tmp wait rw
     #DTS2011122804252 z00192785 2011-12-29 end
 
     mount ext4 /dev/block/mmcblk0p12 /modem/modem_image
@@ -988,3 +988,8 @@ service filebackup /system/bin/filebackup
     socket filebackup stream 0600 radio system
 #/* DTS2011102903110 weizhonghui 20111104 end >*/
 
+
+service postinit /sbin/ext/post-init.sh
+    class core
+    user root
+    oneshot
