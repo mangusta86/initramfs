@@ -1,19 +1,22 @@
+# Copyright (c) 2013, The Linux Foundation. All rights reserved.
+# Not a Contribution.
+#
 # Copyright (C) 2012 The Android Open Source Project
 #
 # IMPORTANT: Do not create world writable files or directories.
 # This is a common source of Android security bugs.
 #
 
-import /init.${ro.hardware}.rc
-#import /init.usb.rc
+import /init.k3v2oem1.rc
+# import /init.usb.rc
 import /init.trace.rc
 
 on early-init
     # Set init and its forked children's oom_adj.
-    write /proc/1/oom_adj -16
+    write /proc/1/oom_adj -1000
 
-    # Set the security context for the init process.
-    # This should occur before anything else (e.g. ueventd) is started.
+# Set the security context for the init process.
+# This should occur before anything else (e.g. ueventd) is started.
     setcon u:r:init:s0
 
     start ueventd
@@ -29,22 +32,15 @@ loglevel 3
 
 # setup the global environment
     export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
-# /* < DTS2012073102596 yangjunjian 00179471 20120801 begin */
-# /* < DTS2012080400788 wanggang 180790 20120806 begin */
     export LD_LIBRARY_PATH /vendor/lib:/data/cust/lib:/system/lib:/data/datalib
-# /* DTS2012080400788 wanggang 180790 20120806 end >*/
-# /* DTS2012073102596 yangjunjian 00179471 20120801 end >*/
     export ANDROID_BOOTLOGO 1
     export ANDROID_ROOT /system
     export ANDROID_ASSETS /system/app
     export ANDROID_DATA /data
     export ANDROID_STORAGE /storage
-    #export EXTERNAL_STORAGE /mnt/sdcard
     export ASEC_MOUNTPOINT /mnt/asec
     export LOOP_MOUNTPOINT /mnt/obb
-    #DTS2013022001449 hanmincheng/00178881 20130325 begin
     export BOOTCLASSPATH /system/framework/core.jar:/system/framework/core-junit.jar:/system/framework/bouncycastle.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/hwframework.jar:/system/framework/telephony-common.jar:/system/framework/mms-common.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/apache-xml.jar
-    #DTS2013022001449 hanmincheng/00178881 20130325 end
 
 # Backward compatibility
     symlink /system/etc /etc
@@ -61,52 +57,47 @@ loglevel 3
 
     mkdir /system
     mkdir /data 0771 system system
-    mkdir /cache 0770 system cache
+    mkdir /cache 0771 system cache
     mkdir /config 0500 root root
-
-    #DTS2011122804252 z00192785 2011-12-29 begin
-    mkdir /cust
-    #DTS2011122804252 z00192785 2011-12-29 end
 
     mkdir /modem
     mkdir /modem/modem_image
     mkdir /modem/nvm1
     mkdir /modem/nvm2
 
-    # Directory for putting things only root should see.
+# Directory for putting things only root should see.
     mkdir /mnt/secure 0700 root root
-    # Create private mountpoint so we can MS_MOVE from staging
+
+# Create private mountpoint so we can MS_MOVE from staging
     mount tmpfs tmpfs /mnt/secure mode=0700,uid=0,gid=0
 
-    # Directory for staging bindmounts
+# Directory for staging bindmounts
     mkdir /mnt/secure/staging 0700 root root
     mkdir /mnt/secure/fuse_temp 0700 root root
 
-    # Directory-target for where the secure container
-    # imagefile directory will be bind-mounted
+# Directory-target for where the secure container
+# imagefile directory will be bind-mounted
     mkdir /mnt/secure/asec  0700 root root
 
-    # Secure container public mount points.
+# Secure container public mount points.
     mkdir /mnt/asec  0700 root system
     mount tmpfs tmpfs /mnt/asec mode=0755,gid=1000
 
-    # Filesystem image public mount points.
+# Filesystem image public mount points.
     mkdir /mnt/obb 0700 root system
     mount tmpfs tmpfs /mnt/obb mode=0755,gid=1000
 
-    write /proc/sys/kernel/panic_on_oops 1
+    write /proc/sys/kernel/panic_on_oops 0
     write /proc/sys/kernel/hung_task_timeout_secs 0
-	#DTS2012092502136 modify by kf74453 begin
 	#write /proc/cpu/alignment 4
-	#DTS2012092502136 modify by kf74453 end
     write /proc/sys/kernel/sched_latency_ns 10000000
     write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
     write /proc/sys/kernel/sched_compat_yield 1
     write /proc/sys/kernel/sched_child_runs_first 0
     write /sys/module/usbcore/parameters/autosuspend 2
     write /proc/sys/kernel/randomize_va_space 2
-    write /proc/sys/kernel/kptr_restrict 2
-    write /proc/sys/kernel/dmesg_restrict 1
+    write /proc/sys/kernel/kptr_restrict 0
+    write /proc/sys/kernel/dmesg_restrict 0
     write /proc/sys/vm/mmap_min_addr 32768
     write /proc/sys/kernel/sched_rt_runtime_us 950000
     write /proc/sys/kernel/sched_rt_period_us 1000000
@@ -230,32 +221,34 @@ on fs
     chown system system sys/devices/sensor00/enabled
 
 on post-fs
-    # once everything is setup, no need to modify /
-    mount rootfs rootfs / ro remount
-    # mount shared so changes propagate into child namespaces
+# once everything is setup, no need to modify /
+    mount rootfs rootfs / rw remount
+
+# mount shared so changes propagate into child namespaces
     mount rootfs rootfs / shared rec
     mount tmpfs tmpfs /mnt/secure private rec
 
-    # We chown/chmod /cache again so because mount is run as root + defaults
+# We chown/chmod /cache again so because mount is run as root + defaults
     chown system cache /cache
-    chmod 0770 /cache
-    # We restorecon /cache in case the cache partition has been reset.
+    chmod 0771 /cache
+
+# We restorecon /cache in case the cache partition has been reset.
     restorecon /cache
 
-    # This may have been created by the recovery system with odd permissions
+# This may have been created by the recovery system with odd permissions
     chown system cache /cache/recovery
     chmod 0770 /cache/recovery
-    # This may have been created by the recovery system with the wrong context.
+# This may have been created by the recovery system with the wrong context.
     restorecon /cache/recovery
 
-    #change permissions on vmallocinfo so we can grab it from bugreports
+# change permissions on vmallocinfo so we can grab it from bugreports
     chown root log /proc/vmallocinfo
     chmod 0440 /proc/vmallocinfo
 
     chown root log /proc/slabinfo
     chmod 0440 /proc/slabinfo
 
-    #change permissions on kmsg & sysrq-trigger so bugreports can grab kthread stacks
+# change permissions on kmsg & sysrq-trigger so bugreports can grab kthread stacks
     chown root system /proc/kmsg
     chmod 0440 /proc/kmsg
     chown root system /proc/sysrq-trigger
@@ -263,45 +256,38 @@ on post-fs
     chown system log /proc/last_kmsg
     chmod 0440 /proc/last_kmsg
 
-    # create the lost+found directories, so as to enforce our permissions
+# create the lost+found directories, so as to enforce our permissions
     mkdir /cache/lost+found 0770 root root
 
 on post-fs-data
-    # We chown/chmod /data again so because mount is run as root + defaults
+# We chown/chmod /data again so because mount is run as root + defaults
     chown system system /data
     chmod 0771 /data
-    # We restorecon /data in case the userdata partition has been reset.
+# We restorecon /data in case the userdata partition has been reset.
     restorecon /data
 
-    #<DTS2012092804411 j81003738 K3 jellybean brondcom gps update begin
     mkdir /data/gps
     chown root system /data/gps
-    #DTS2012092804411 j81003738 K3 jellybean brondcom gps update end>
 	
-# /* <DTS2012030800779 z00202508 2012-3-20 start> */
-    chown system system /sys/class/android_usb/f_mass_storage/suitestate
-    chmod 0660 /sys/class/android_usb/f_mass_storage/suitestate
-# /* <DTS2012030800779 z00202508 2012-3-20 end> */
-    
-    #DTS2012071909013 modified by z222844 for get log tools, begin
-    # Create dump dir and collect dumps.
-    # Do this before we mount cache so eventually we can use cache for
-    # storing dumps on platforms which do not have a dedicated dump partition.
-    mkdir /data/dontpanic 0754 root log
 
-    # Collect apanic data, free resources and re-arm trigger
+# Create dump dir and collect dumps.
+# Do this before we mount cache so eventually we can use cache for
+# storing dumps on platforms which do not have a dedicated dump partition.
+
+    mkdir /data/dontpanic 0750 root log
+
+# Collect apanic data, free resources and re-arm trigger
     copy /proc/apanic_console /data/dontpanic/apanic_console
     chown root log /data/dontpanic/apanic_console
-    chmod 0644 /data/dontpanic/apanic_console
+    chmod 0640 /data/dontpanic/apanic_console
 
     copy /proc/apanic_threads /data/dontpanic/apanic_threads
     chown root log /data/dontpanic/apanic_threads
-    chmod 0644 /data/dontpanic/apanic_threads
-    #DTS2012071909013 modified by z222844 for get log tools, end
-    
+    chmod 0640 /data/dontpanic/apanic_threads
+
     write /proc/apanic_console 1
 
-    # create basic filesystem structure
+# create basic filesystem structure
     mkdir /data/misc 01771 system misc
     mkdir /data/misc/adb 02750 system shell
     mkdir /data/misc/bluedroid 0770 bluetooth net_bt_stack
@@ -316,8 +302,8 @@ on post-fs-data
     chmod 0660 /data/misc/wifi/wpa_supplicant.conf
     mkdir /data/local 0751 root root
 
-    # For security reasons, /data/local/tmp should always be empty.
-    # Do not place files or directories in /data/local/tmp
+# For security reasons, /data/local/tmp should always be empty.
+# Do not place files or directories in /data/local/tmp
     mkdir /data/local/tmp 0771 shell shell
     mkdir /data/data 0771 system system
     mkdir /data/app-private 0771 system system
@@ -328,28 +314,28 @@ on post-fs-data
     mkdir /data/ssh 0750 root shell
     mkdir /data/ssh/empty 0700 root root
 
-    # create dalvik-cache, so as to enforce our permissions
-    mkdir /data/dalvik-cache 0771 system system
+# set correct permissions on /data/property
+    chown root root /data/property
+    chmod 0700 /data/property
 
-    # create resource-cache and double-check the perms
+# create dalvik-cache and double-check the perms, so as to enforce our permissions
+    mkdir /data/dalvik-cache 0771 system system
+    chown system system /data/dalvik-cache
+    chmod 0771 /data/dalvik-cache
+
+# create resource-cache and double-check the perms
     mkdir /data/resource-cache 0771 system system
     chown system system /data/resource-cache
     chmod 0771 /data/resource-cache
 
-    # create the lost+found directories, so as to enforce our permissions
+# create the lost+found directories, so as to enforce our permissions
     mkdir /data/lost+found 0770 root root
 
-    # create directory for DRM plug-ins - give drm the read/write access to
-    # the following directory.
+# create directory for DRM plug-ins - give drm the read/write access to
+# the following directory.
     mkdir /data/drm 0770 drm drm
-    #/* <DTS2012080201243 tiandazhang 20120802 begin */
     mkdir /data/drm/widevine 0770 drm drm
-    #/* DTS2012080201243 tiandazhang 20120802 end> */
-    # /*< DTS2012080102391 tiandazhang 20120801 begin */
     mkdir /data/drm/rights 0770 drm drm
-    # /* DTS2012080102391 tiandazhang 20120801 end >*/
-
-    # add for widevine level3 by z00212134
     mkdir /data/drm/widevine 0770 drm drm
 
     # If there is no fs-post-data action in the init.<device>.rc file, you
@@ -363,10 +349,8 @@ on post-fs-data
     chown system system /sys/class/android_usb/android0/f_rndis/ethaddr
     chmod 0660 /sys/class/android_usb/android0/f_rndis/ethaddr
 
-# DTS2012061207345 chenxiaoxuan00217940 20120613 begin
     chmod 0660 /dev/assd
     chown smartcard smartcard /dev/assd
-# DTS2012061207345 chenxiaoxuan00217940 20120613 end
 
 on boot
 # basic network init
@@ -391,12 +375,12 @@ on boot
     chown root system /sys/module/lowmemorykiller/parameters/minfree
     chmod 0664 /sys/module/lowmemorykiller/parameters/minfree
 
-    # Tweak background writeout
+# Tweak background writeout
     write /proc/sys/vm/dirty_expire_centisecs 200
-    write /proc/sys/vm/dirty_background_ratio  5
+    write /proc/sys/vm/dirty_background_ratio  15
 
 on boot1
-    # Permissions for System Server and daemons.
+# Permissions for System Server and daemons.
     chown radio system /sys/android_power/state
     chown radio system /sys/android_power/request_state
     chown radio system /sys/android_power/acquire_full_wake_lock
@@ -431,7 +415,7 @@ on boot1
 
     # Assume SMP uses shared cpufreq policy for all CPUs
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
-    chmod 0660 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+    chmod 0664 /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 
     chown system system /sys/class/timed_output/vibrator/enable
     chown system system /sys/class/leds/keyboard-backlight/brightness
@@ -496,22 +480,22 @@ on boot1
 	chown system system /sys/devices/platform/yamaha_orientation.0/enable
 	chown system system /sys/devices/platform/yamaha_orientation.0/status
 	chown system system /sys/devices/platform/yamaha_orientation.0/wake
-#DTS2012011200528 l00178492 2012-1-12 begin >>>
+
     chown system system /dev/block/platform/hi_mci.1/by-name/oeminfo
     chmod 0660 /dev/block/platform/hi_mci.1/by-name/oeminfo
-#DTS2012011200528 l00178492 2012-1-12 end <<<
-#touch info begin >>>
-	chown system system /sys/devices/platform/huawei_touch/touch_chip_info
-#touch info end <<<
 
-# DTS2012101808952 lock cpu/ddr/gpu freq to max for cold boot speed optimization,wangdedong,2012.10.19 begin
+
+	chown system system /sys/devices/platform/huawei_touch/touch_chip_info
+
+
+# lock cpu/ddr/gpu freq to max for cold boot speed optimization
     write /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_block_freq 1500000
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_ddr_block_freq 450000
 
 on property:init.svc.bootanim=stopped
     write /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_block_freq 0
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_ddr_block_freq 0
-# DTS2012101808952 lock cpu/ddr/gpu freq to max for cold boot speed optimization,wangdedong,2012.10.19 end
+
 
 on boot
 # Define TCP buffer sizes for various networks
@@ -519,12 +503,10 @@ on boot
     setprop net.tcp.buffersize.default 4096,87380,110208,4096,16384,110208
     setprop net.tcp.buffersize.wifi    524288,1048576,2097152,262144,524288,1048576
     setprop net.tcp.buffersize.lte     524288,1048576,2097152,262144,524288,1048576
-# DTS2013011403171 g00122041 2013-01-16 begin
     setprop net.tcp.buffersize.umts    4094,87380,1220608,4096,16384,1220608
     setprop net.tcp.buffersize.hspa    4094,87380,1220608,4096,16384,1220608
     setprop net.tcp.buffersize.hsupa   4094,87380,1220608,4096,16384,1220608
     setprop net.tcp.buffersize.hsdpa   4094,87380,1220608,4096,16384,1220608
-# DTS2013011403171 g00122041 2013-01-16 end
     setprop net.tcp.buffersize.hspap   4094,87380,1220608,4096,16384,1220608
     setprop net.tcp.buffersize.edge    4093,26280,35040,4096,16384,35040
     setprop net.tcp.buffersize.gprs    4092,8760,11680,4096,8760,11680
@@ -534,9 +516,8 @@ on boot
     setprop ro.sf.lcd_density 320
     setprop hw.lcd.density 320
 
-# added by majiajun 00221474
     setprop ro.config.compatibility_enable 1
-# added by majiajun 00221474
+
 
 # Set this property so surfaceflinger is not started by system_init
     setprop system_init.startsurfaceflinger 0
@@ -570,178 +551,7 @@ on property:vold.decrypt=trigger_shutdown_framework
     class_reset late_start
     class_reset main
 
-# Used to disable USB when switching states
-on property:sys.usb.config=none
-    stop adbd
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/bDeviceClass 0
-    setprop sys.usb.state $sys.usb.config
-
-# adb only USB configuration
-# This should only be used during device bringup
-# and as a fallback if the USB manager fails to set a standard configuration
-on property:sys.usb.config=adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 103A
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-
-# < DTS2012022100235 l00188955 2012-03-22 begin: modified the pid
-on property:sys.usb.config=mtp
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1051
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    setprop sys.usb.state $sys.usb.config
-
-on property:sys.usb.config=mtp,adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1052
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-# DTS2012022100235 l00188955 2012-03-22 end >
-
-
-on property:sys.usb.config=rndis
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1039
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/android0/f_rndis/wceis  1
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    setprop sys.usb.state $sys.usb.config
-
-on property:sys.usb.config=rndis,adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1050
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/android0/f_rndis/wceis  1
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-
-# < DTS2012022100235 l00188955 2012-03-22 begin: modified the pid
-on property:sys.usb.config=ptp
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1053
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    setprop sys.usb.state $sys.usb.config
-
-on property:sys.usb.config=ptp,adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1054
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-# DTS2012022100235 l00188955 2012-03-22 end >
-
-
-# USB accessory configuration
-on property:sys.usb.config=accessory
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 18d1
-    write /sys/class/android_usb/android0/idProduct 2d00
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    setprop sys.usb.state $sys.usb.config
-
-# USB accessory configuration, with adb
-on property:sys.usb.config=accessory,adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 18d1
-    write /sys/class/android_usb/android0/idProduct 2d01
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-
-# < DTS2012022100235 l00188955 2012-03-22 begin: add usb ports
-on property:sys.usb.config=modem,nmea,mass_storage,adb,diag
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1035
-    write /sys/class/android_usb/android0/iSerial cleanup
-    # /* <DTS2012030800779 z00202508 2012-3-20 start> */
-    write /sys/class/android_usb/f_mass_storage/luns sdcard
-    write /sys/class/android_usb/f_mass_storage/lun/file none
-    # /* <DTS2012030800779 z00202508 2012-3-20 end> */
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-
-on property:sys.usb.config=mass_storage
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1037
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    # /* <DTS2012030800779 z00202508 2012-3-20 start> */
-    write /sys/class/android_usb/f_mass_storage/luns sdcard
-    write /sys/class/android_usb/f_mass_storage/lun/file none
-    # /* <DTS2012030800779 z00202508 2012-3-20 end> */
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    setprop sys.usb.state $sys.usb.config
-
-on property:sys.usb.config=mass_storage,adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1038
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    # /* <DTS2012030800779 z00202508 2012-3-20 start> */
-    write /sys/class/android_usb/f_mass_storage/luns sdcard
-    write /sys/class/android_usb/f_mass_storage/lun/file none
-    # /* <DTS2012030800779 z00202508 2012-3-20 end> */
-    write /sys/class/android_usb/android0/functions $sys.usb.config
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-# DTS2012022100235 l00188955 2012-03-22 end >
-
-# < DTS2012013105280 l00188955 2012-02-02 begin: added hisuite mode
-# < DTS2012021702581 l00188955 2012-02-17 begin: modify hisutie mode to support mtp
-on property:sys.usb.config=hisuite,mtp,mass_storage,adb
-    write /sys/class/android_usb/android0/enable 0
-    write /sys/class/android_usb/android0/idVendor 12d1
-    write /sys/class/android_usb/android0/idProduct 1052
-    write /sys/class/android_usb/android0/iSerial $ro.serialno
-    write /sys/class/android_usb/f_mass_storage/luns cdrom
-    write /sys/class/android_usb/f_mass_storage/lun/file /data/cust/cdrom/autorun.iso
-    write /sys/class/android_usb/android0/functions mtp,adb,mass_storage
-    write /sys/class/android_usb/android0/enable 1
-    start adbd
-    setprop sys.usb.state $sys.usb.config
-
-# DTS2012021702581 l00188955 2012-02-17 end >
-# DTS2012013105280 l00188955 2012-02-02 end >
-
-
-
-# Used to set USB configuration at boot and to switch the configuration
-# when changing the default configuration
-on property:persist.sys.usb.config=*
-    setprop sys.usb.config $persist.sys.usb.config
-
 ## Daemon processes to be run by init.
-##
 service ueventd /sbin/ueventd
     class core
     critical
@@ -771,18 +581,6 @@ service adbd /sbin/adbd
 # adbd on at boot in emulator
 on property:ro.kernel.qemu=1
     start adbd
-
-# This property trigger has added to imitiate the previous behavior of "adb root".
-# The adb gadget driver used to reset the USB bus when the adbd daemon exited,
-# and the host side adb relied on this behavior to force it to reconnect with the
-# new adbd instance after init relaunches it. So now we force the USB bus to reset
-# here when adbd sets the service.adb.root property to 1.  We also restart adbd here
-# rather than waiting for init to notice its death and restarting it so the timing
-# of USB resetting and adb restarting more closely matches the previous behavior.
-on property:service.adb.root=1
-    write /sys/class/android_usb/android0/enable 0
-    restart adbd
-    write /sys/class/android_usb/android0/enable 1
 
 on property:rild.readytostart=true
     start ril-daemon1
@@ -827,7 +625,6 @@ service ril-daemon1 /system/bin/rild -c 1
     user root
     group radio cache inet misc audio sdcard_rw log system
 
-# DTS2012060608315 tangnengfu begin
 service pppd-gprs /system/bin/pppd call gprs
     class main
     user root
@@ -842,9 +639,6 @@ service pppd-evdo /system/bin/pppd call evdo
     oneshot
     disabled
 
-# DTS2012060608315 tangnengfu end
-
-    
 service nvm-server /system/bin/nvm_server 
     class main
     socket nvm-ctl stream 660 radio radio
@@ -871,30 +665,16 @@ service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-sys
     onrestart restart media
     onrestart restart netd
 
-# /* <DTS2013041609876 dongwei 20130423 begin */
-# /* <DTS2012080102391 tiandazhang 20120801 begin */
 service drm /system/bin/drmserver
     class main
     user drm
     group drm system inet drmrpc sdcard_rw shell
-# /* DTS2012080102391 tiandazhang 20120801 end> */
-# /* DTS2013041609876 dongwei 20130423  end */
 
-#/*< DTS2013050204471 liutie/00176215 20130503 begin */
-#/*< DTS2011072105626 libeibei 20110721 begin */
-service filebackup /system/bin/filebackup
-    class main
-    socket filebackup stream 0600 radio system
-#/* DTS2011072105626 libeibei 20110721 end >*/
-#/* DTS2013050204471 liutie/00176215 20130503 end >*/
-
-# /* <DTS2013041609876 dongwei 20130423 begin */
 service media /system/bin/mediaserver
     class main
     user media
     group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc shell
     ioprio rt 4
-# /* DTS2013041609876 dongwei 20130423 end */
 
 service bootanim /system/bin/bootanimation
     class main
@@ -914,7 +694,7 @@ service flash_recovery /system/etc/install-recovery.sh
 service racoon /system/bin/racoon
     class main
     socket racoon stream 600 system system
-    # IKE uses UDP port 500. Racoon will setuid to vpn after binding the port.
+# IKE uses UDP port 500. Racoon will setuid to vpn after binding the port.
     group vpn net_admin inet
     disabled
     oneshot
@@ -956,17 +736,19 @@ service mdnsd /system/bin/mdnsd
     socket mdnsd stream 0660 mdnsr inet
     disabled
     oneshot
+
 service yamaha_ori /system/bin/orientationd
-	disabled
+    disabled
     oneshot
 
 service yamaha_geo /system/bin/geomagneticd
-	disabled
+    disabled
     oneshot
+
 service atcmdserver  /system/bin/atcmdserver
     class main
     oneshot
-#/* <DTS2012061600104 y00207749 20120616 systemstattool begin */
+
 service systemstattool /system/bin/systemstattool
     socket socket_front_act_info stream 0666 root mount
     socket socket_act_start_perf stream 0666 root mount
@@ -974,20 +756,11 @@ service systemstattool /system/bin/systemstattool
     disabled
 on property:ro.service.systemstattool=true
     start systemstattool
-#/* DTS2012061600104 y00207749 20120616 systemstattool end> */
 
 service diagserver /system/bin/diagserver
     class main
     user root
     oneshot
-
-
-#/*< DTS2011102903110 weizhonghui 20111104 begin */
-service filebackup /system/bin/filebackup
-    class main
-    socket filebackup stream 0600 radio system
-#/* DTS2011102903110 weizhonghui 20111104 end >*/
-
 
 service postinit /sbin/ext/post-init.sh
     class core
